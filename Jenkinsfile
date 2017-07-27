@@ -59,10 +59,14 @@ node('master') {
         sh "docker run -v $WORKSPACE:/go/src/${goPkg} -w /go/src/${goPkg} ${godevImage} go test -v ./pkg/..."
     }
 
-    stage('Build and Push') {
+    stage('Build') {
+        sh "docker run -v $WORKSPACE:/go/src/${goPkg} -w /go/src/${goPkg} -v /var/run/docker.sock:/var/run/docker.sock -e IMAGE=${env.IMAGE_REGISTRY}/${env.IMAGE_ORG}/etcd-operator ${godevImage} hack/build/operator/build"
+    }
+
+    stage('Push') {
         withCredentials(registry.creds) {
             dockerLogin(registry)
-            sh "docker run -v $WORKSPACE:/go/src/${goPkg} -w /go/src/${goPkg} -v /var/run/docker.sock:/var/run/docker.sock -e IMAGE=${env.IMAGE_REGISTRY}/${env.IMAGE_ORG}/etcd-operator ${godevImage} hack/build/operator/build"
+            sh "docker push ${env.IMAGE_REGISTRY}/${env.IMAGE_ORG}/etcd-operator"
         }
     }
 

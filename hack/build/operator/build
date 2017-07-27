@@ -43,4 +43,4 @@ go_build backup
 
 docker build --tag "${IMAGE}" -f hack/build/operator/Dockerfile . 1>/dev/null
 # For gcr users, do "gcloud docker -a" to have access.
-docker push "${IMAGE}" 1>/dev/null
+#docker push "${IMAGE}" 1>/dev/null

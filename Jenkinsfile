@@ -7,8 +7,8 @@ def godevImage = 'quay.io/deis/go-dev:v1.1.0'
 def goPkg = 'github.com/coreos/etcd-operator'
 
 // discern between target branch and PR commits
-def isMaster = { String branch ->
-    branch == "remotes/origin/master"
+def isPrimaryBranch = { String branch ->
+    branch == "remotes/origin/feat/jenkins-ci"
 }
 
 // shell wrapper adding ansicolor
@@ -64,9 +64,11 @@ node('master') {
     }
 
     stage('Push') {
-        withCredentials(registry.creds) {
-            dockerLogin(registry)
-            sh "docker push ${env.IMAGE_REGISTRY}/${env.IMAGE_ORG}/etcd-operator"
+        if(isPrimaryBranch) {
+            withCredentials(registry.creds) {
+                dockerLogin(registry)
+                sh "docker push ${env.IMAGE_REGISTRY}/${env.IMAGE_ORG}/etcd-operator"
+            }
         }
     }
 

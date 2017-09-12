@@ -21,10 +21,10 @@ def sh = { cmd ->
 def registries = [
   acr: [
     staging: [
-        name: 'hcpintacr.azurecr.io',
+        name: 'acsregistry4int-microsoft.azurecr.io',
         repository: 'hcpint',
         creds: [[ $class: 'UsernamePasswordMultiBinding',
-            credentialsId: 'HCPintACRcreds',
+            credentialsId: 'ACSRegistry4Int',
             usernameVariable: 'REGISTRY_USERNAME',
             passwordVariable: 'REGISTRY_PASSWORD',
         ]],

@@ -1,3 +1,7 @@
+# Azure Fork
+
+The azure/etcd-operator fork builds and pushes the etcd-operator image to azure container registry. See the [Jenkinsfile](./Jenkinsfile) for more information.
+
 # etcd operator
 unit/integration:
 [![Build Status](https://jenkins-etcd-public.prod.coreos.systems/view/operator/job/etcd-operator-unit-master/badge/icon)](https://jenkins-etcd-public.prod.coreos.systems/view/operator/job/etcd-operator-unit-master/)

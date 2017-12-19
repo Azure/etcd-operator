@@ -12,56 +12,47 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package writer
+package reader
 
 import (
 	"fmt"
 	"io"
 
-	"github.com/Azure/azure-sdk-for-go/storage"
 	"github.com/coreos/etcd-operator/pkg/backup/util"
+
+	"github.com/Azure/azure-sdk-for-go/storage"
 )
 
-var _ Writer = &absWriter{}
+// ensure absReader satisfies reader interface.
+var _ Reader = &absReader{}
 
-type absWriter struct {
+// s3Reader provides Reader imlementation for reading a file from S3
+type absReader struct {
 	abs *storage.BlobStorageClient
 }
 
-// NewABSWriter creates a abs writer.
-func NewABSWriter(abs *storage.BlobStorageClient) Writer {
-	return &absWriter{abs}
+func NewABSReader(abs *storage.BlobStorageClient) Reader {
+	return &absReader{abs}
 }
 
-// Write writes the backup file to the given abs path, "<abs-container-name>/<key>".
-func (absw *absWriter) Write(path string, r io.Reader) (int64, error) {
+// Open opens the file on path where path must be in the format "<s3-bucket-name>/<key>"
+func (absr *absReader) Open(path string) (io.ReadCloser, error) {
 	container, key, err := util.ParseBucketAndKey(path)
 	if err != nil {
-		return 0, err
+		return nil, fmt.Errorf("failed to parse abs container and key: %v", err)
 	}
 
-	containerRef := absw.abs.GetContainerReference(container)
+	containerRef := absr.abs.GetContainerReference(container)
 	containerExists, err := containerRef.Exists()
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 
 	if !containerExists {
-		return 0, fmt.Errorf("container %v does not exist", container)
+		return nil, fmt.Errorf("container %v does not exist", container)
 	}
 
 	blob := containerRef.GetBlobReference(key)
-	putBlobOpts := storage.PutBlobOptions{}
-	err = blob.CreateBlockBlobFromReader(r, &putBlobOpts)
-	if err != nil {
-		return 0, fmt.Errorf("create block blob from reader failed: %v", err)
-	}
-
 	getBlobOpts := &storage.GetBlobOptions{}
-	_, err = blob.Get(getBlobOpts)
-	if err != nil {
-		return 0, err
-	}
-
-	return blob.Properties.ContentLength, nil
+	return blob.Get(getBlobOpts)
 }

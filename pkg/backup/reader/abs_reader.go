@@ -26,7 +26,7 @@ import (
 // ensure absReader satisfies reader interface.
 var _ Reader = &absReader{}
 
-// s3Reader provides Reader imlementation for reading a file from S3
+// absReader provides Reader imlementation for reading a file from ABS
 type absReader struct {
 	abs *storage.BlobStorageClient
 }
@@ -35,7 +35,7 @@ func NewABSReader(abs *storage.BlobStorageClient) Reader {
 	return &absReader{abs}
 }
 
-// Open opens the file on path where path must be in the format "<s3-bucket-name>/<key>"
+// Open opens the file on path where path must be in the format "<abs-container-name>/<key>"
 func (absr *absReader) Open(path string) (io.ReadCloser, error) {
 	container, key, err := util.ParseBucketAndKey(path)
 	if err != nil {

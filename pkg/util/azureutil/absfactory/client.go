@@ -33,7 +33,7 @@ type ABSClient struct {
 	ABS *storage.BlobStorageClient
 }
 
-// NewClientFromSecret returns a S3 client based on given k8s secret containing aws credentials.
+// NewClientFromSecret returns a ABS client based on given k8s secret containing aws credentials.
 func NewClientFromSecret(kubecli kubernetes.Interface, namespace, absSecret string) (w *ABSClient, err error) {
 	defer func() {
 		if err != nil {

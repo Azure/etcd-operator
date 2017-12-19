@@ -21,6 +21,10 @@ const (
 	// S3V1 indicates the version 1 of
 	// S3 backup format: <s3Bucket>/<s3Prefix>/"v1"/<namespace>/<clusterName>
 	S3V1 = "v1"
+
+	// ABSV1 indicates the version 1 of
+	// ABS backup format: <absContainer>/"v1"/<namespace>/<clusterName>
+	ABSV1 = "v1"
 )
 
 // ToS3Prefix concatenates s3Prefix, S3V1, namespace, clusterName to a single s3 prefix.

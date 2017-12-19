@@ -17,7 +17,8 @@ package v1beta2
 import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 const (
-	BackupStorageTypeS3 BackupStorageType = "S3"
+	BackupStorageTypeS3  BackupStorageType = "S3"
+	BackupStorageTypeABS BackupStorageType = "ABS"
 
 	AWSSecretCredentialsFileName = "credentials"
 	AWSSecretConfigFileName      = "config"

@@ -120,7 +120,7 @@ func (b *Backup) handleBackup(spec *api.BackupSpec) (*api.BackupStatus, error) {
 		}
 		return bs, nil
 	case api.BackupStorageTypeABS:
-		bs, err := handleABS()
+		bs, err := handleABS(b.kubecli, spec.ABS, spec.EtcdEndpoints, spec.ClientTLSSecret, b.namespace)
 		if err != nil {
 			return nil, err
 		}

@@ -17,11 +17,15 @@ package v1beta2
 import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 const (
-	BackupStorageTypeS3  BackupStorageType = "S3"
-	BackupStorageTypeABS BackupStorageType = "ABS"
+	// AWS S3 related consts
+	BackupStorageTypeS3          BackupStorageType = "S3"
+	AWSSecretCredentialsFileName                   = "credentials"
+	AWSSecretConfigFileName                        = "config"
 
-	AWSSecretCredentialsFileName = "credentials"
-	AWSSecretConfigFileName      = "config"
+	// Azure ABS related consts
+	BackupStorageTypeABS      BackupStorageType = "ABS"
+	AzureSecretStorageAccount                   = "storage-account"
+	AzureSecretStorageKey                       = "storage-key"
 )
 
 type BackupStorageType string
@@ -72,6 +76,9 @@ type BackupSpec struct {
 type BackupSource struct {
 	// S3 defines the S3 backup source spec.
 	S3 *S3BackupSource `json:"s3,omitempty"`
+
+	// ABS defines the ABS backup source spec.
+	ABS *ABSBackupSource `json:"abs,omitempty"`
 }
 
 // BackupStatus represents the status of the EtcdBackup Custom Resource.
@@ -100,4 +107,15 @@ type S3BackupSource struct {
 	//
 	// AWSSecret overwrites the default etcd operator wide AWS credential and config.
 	AWSSecret string `json:"awsSecret"`
+}
+
+// ABSBackupSource provides the spec how to store backups on ABS.
+type ABSBackupSource struct {
+	// Path is the full abs path where the backup is saved.
+	// The format of the path must be: "<abs-container-name>/<path-to-backup-file>"
+	// e.g: "myabscontainer/etcd.backup"
+	Path string `json:"path"`
+
+	// The name of the secret object that stores the Azure storage credential
+	ABSSecret string `json:"absSecret"`
 }

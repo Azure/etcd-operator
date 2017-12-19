@@ -21,7 +21,7 @@ import (
 	api "github.com/coreos/etcd-operator/pkg/apis/etcd/v1beta2"
 	"github.com/coreos/etcd-operator/pkg/backup"
 	"github.com/coreos/etcd-operator/pkg/backup/writer"
-	"github.com/coreos/etcd-operator/pkg/util/awsutil/s3factory"
+	"github.com/coreos/etcd-operator/pkg/util/azureutil/absfactory"
 	"github.com/coreos/etcd-operator/pkg/util/etcdutil"
 	"github.com/coreos/etcd-operator/pkg/util/k8sutil"
 
@@ -29,13 +29,12 @@ import (
 )
 
 // TODO: replace this with generic backend interface for other options (PV, Azure)
-// handleS3 saves etcd cluster's backup to specificed S3 path.
-func handleS3(kubecli kubernetes.Interface, s *api.S3BackupSource, endpoints []string, clientTLSSecret, namespace string) (*api.BackupStatus, error) {
-	cli, err := s3factory.NewClientFromSecret(kubecli, namespace, s.AWSSecret)
+// handleABS saves etcd cluster's backup to specificed ABS path.
+func handleABS(kubecli kubernetes.Interface, s *api.ABSBackupSource, endpoints []string, clientTLSSecret, namespace string) (*api.BackupStatus, error) {
+	cli, err := absfactory.NewClientFromSecret(kubecli, namespace, s.ABSSecret)
 	if err != nil {
 		return nil, err
 	}
-	defer cli.Close()
 
 	var tlsConfig *tls.Config
 	if len(clientTLSSecret) != 0 {
@@ -49,7 +48,7 @@ func handleS3(kubecli kubernetes.Interface, s *api.S3BackupSource, endpoints []s
 		}
 	}
 
-	bm := backup.NewBackupManagerFromWriter(kubecli, writer.NewS3Writer(cli.S3), tlsConfig, endpoints, namespace)
+	bm := backup.NewBackupManagerFromWriter(kubecli, writer.NewABSWriter(cli.ABS), tlsConfig, endpoints, namespace)
 	rev, etcdVersion, err := bm.SaveSnap(s.Path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to save snapshot (%v)", err)

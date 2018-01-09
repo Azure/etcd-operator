@@ -26,7 +26,7 @@ import (
 // ensure absReader satisfies reader interface.
 var _ Reader = &absReader{}
 
-// absReader provides Reader imlementation for reading a file from ABS
+// absReader provides Reader implementation for reading a file from ABS
 type absReader struct {
 	abs *storage.BlobStorageClient
 }

@@ -50,7 +50,7 @@ func handleS3(kubecli kubernetes.Interface, s *api.S3BackupSource, endpoints []s
 	}
 
 	bm := backup.NewBackupManagerFromWriter(kubecli, writer.NewS3Writer(cli.S3), tlsConfig, endpoints, namespace)
-	rev, etcdVersion, err := bm.SaveSnap(s.Path)
+	rev, etcdVersion, err := bm.SaveSnap(s.Path, false)
 	if err != nil {
 		return nil, fmt.Errorf("failed to save snapshot (%v)", err)
 	}

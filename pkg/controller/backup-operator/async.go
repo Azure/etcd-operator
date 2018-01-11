@@ -15,14 +15,36 @@
 package controller
 
 import (
+	"time"
+
 	api "github.com/coreos/etcd-operator/pkg/apis/etcd/v1beta2"
 
 	"github.com/sirupsen/logrus"
 )
 
 // Note BackupStatus returned here is from the first round run
-func (b *Backup) run(spec *api.BackupSpec) (*api.BackupStatus, error) {
+func (b *Backup) handle(spec *api.BackupSpec) (*api.BackupStatus, error) {
+	status, err := b.handleBackup(spec)
+	b.handleBackupSchedule(spec)
+	return status, err
+}
 
+func (b *Backup) handleBackupSchedule(spec *api.BackupSpec) {
+	interval := spec.BackupSchedule.BackupIntervalInSecond
+	if interval >= 0 {
+		go func() {
+			if spec.BackupSchedule.MaxBackups == 0 {
+				return
+			}
+
+			for {
+				select {
+				case <-time.After(time.Duration(interval) * time.Second):
+					b.handleBackup(spec)
+				}
+			}
+		}()
+	}
 }
 
 func (b *Backup) handleBackup(spec *api.BackupSpec) (*api.BackupStatus, error) {
@@ -34,7 +56,7 @@ func (b *Backup) handleBackup(spec *api.BackupSpec) (*api.BackupStatus, error) {
 		}
 		return bs, nil
 	case api.BackupStorageTypeABS:
-		bs, err := handleABS(b.kubecli, spec.ABS, spec.EtcdEndpoints, spec.ClientTLSSecret, b.namespace)
+		bs, err := handleABS(b.kubecli, spec.ABS, spec.BackupSchedule, spec.EtcdEndpoints, spec.ClientTLSSecret, b.namespace)
 		if err != nil {
 			return nil, err
 		}

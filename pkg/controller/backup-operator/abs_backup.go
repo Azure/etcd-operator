@@ -30,7 +30,7 @@ import (
 
 // TODO: replace this with generic backend interface for other options (PV, Azure)
 // handleABS saves etcd cluster's backup to specificed ABS path.
-func handleABS(kubecli kubernetes.Interface, s *api.ABSBackupSource, endpoints []string, clientTLSSecret, namespace string) (*api.BackupStatus, error) {
+func handleABS(kubecli kubernetes.Interface, s *api.ABSBackupSource, sch api.BackupSchedule, endpoints []string, clientTLSSecret, namespace string) (*api.BackupStatus, error) {
 	cli, err := absfactory.NewClientFromSecret(kubecli, namespace, s.ABSSecret)
 	if err != nil {
 		return nil, err
@@ -49,9 +49,18 @@ func handleABS(kubecli kubernetes.Interface, s *api.ABSBackupSource, endpoints [
 	}
 
 	bm := backup.NewBackupManagerFromWriter(kubecli, writer.NewABSWriter(cli.ABS), tlsConfig, endpoints, namespace)
-	rev, etcdVersion, err := bm.SaveSnap(s.Path)
+	appendRev := false
+	if sch.BackupIntervalInSecond > 0 {
+		appendRev = true
+	}
+	rev, etcdVersion, err := bm.SaveSnap(s.Path, appendRev)
 	if err != nil {
 		return nil, fmt.Errorf("failed to save snapshot (%v)", err)
+	}
+
+	err = bm.PurgeBackup(s.Path, sch.MaxBackups)
+	if err != nil {
+		return nil, fmt.Errorf("failed to purge backups (%v)", err)
 	}
 	return &api.BackupStatus{EtcdVersion: etcdVersion, EtcdRevision: rev}, nil
 }

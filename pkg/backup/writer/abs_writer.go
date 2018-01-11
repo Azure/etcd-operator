@@ -17,6 +17,7 @@ package writer
 import (
 	"fmt"
 	"io"
+	"sort"
 
 	"github.com/Azure/azure-sdk-for-go/storage"
 	"github.com/coreos/etcd-operator/pkg/backup/util"
@@ -33,21 +34,28 @@ func NewABSWriter(abs *storage.BlobStorageClient) Writer {
 	return &absWriter{abs}
 }
 
+func (absw *absWriter) getContainer(container string) (*storage.Container, error) {
+	containerRef := absw.abs.GetContainerReference(container)
+	containerExists, err := containerRef.Exists()
+	if err != nil {
+		return nil, err
+	}
+
+	if !containerExists {
+		return nil, fmt.Errorf("container %v does not exist", container)
+	}
+	return containerRef, nil
+}
+
 // Write writes the backup file to the given abs path, "<abs-container-name>/<key>".
 func (absw *absWriter) Write(path string, r io.Reader) (int64, error) {
 	container, key, err := util.ParseBucketAndKey(path)
 	if err != nil {
 		return 0, err
 	}
-
-	containerRef := absw.abs.GetContainerReference(container)
-	containerExists, err := containerRef.Exists()
+	containerRef, err := absw.getContainer(container)
 	if err != nil {
 		return 0, err
-	}
-
-	if !containerExists {
-		return 0, fmt.Errorf("container %v does not exist", container)
 	}
 
 	blob := containerRef.GetBlobReference(key)
@@ -64,4 +72,38 @@ func (absw *absWriter) Write(path string, r io.Reader) (int64, error) {
 	}
 
 	return blob.Properties.ContentLength, nil
+}
+
+func (absw *absWriter) Purge(path string, maxBackups int) error {
+	container, key, err := util.ParseBucketAndKey(path)
+	if err != nil {
+		return err
+	}
+
+	containerRef, err := absw.getContainer(container)
+	if err != nil {
+		return err
+	}
+
+	params := storage.ListBlobsParameters{Prefix: fmt.Sprintf("%s_", key)}
+	resp, err := containerRef.ListBlobs(params)
+	if err != nil {
+		return err
+	}
+
+	blobNames := []string{}
+	for _, blob := range resp.Blobs {
+		blobNames = append(blobNames, (blob.Name))
+	}
+
+	// we can just use string comparison
+	sort.Strings(blobNames)
+	for i := 0; i < len(blobNames)-maxBackups; i++ {
+		blob := containerRef.GetBlobReference(blobNames[i])
+		err = blob.Delete(&storage.DeleteBlobOptions{})
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }

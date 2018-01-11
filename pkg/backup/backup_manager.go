@@ -49,9 +49,15 @@ func NewBackupManagerFromWriter(kubecli kubernetes.Interface, bw writer.Writer, 
 	}
 }
 
+// PurgeBackup used the s3Path as prefix, to purge stale backups more than maxBackups count
+func (bm *BackupManager) PurgeBackup(s3Path string, maxBackups int) error {
+	return bm.bw.Purge(s3Path, maxBackups)
+}
+
 // SaveSnap uses backup writer to save etcd snapshot to a specified S3 path
 // and returns backup etcd server's kv store revision and its version.
-func (bm *BackupManager) SaveSnap(s3Path string) (int64, string, error) {
+// appendRev specify whether we want to append Rev to the s3Path
+func (bm *BackupManager) SaveSnap(s3Path string, appendRev bool) (int64, string, error) {
 	etcdcli, rev, err := bm.etcdClientWithMaxRevision()
 	if err != nil {
 		return 0, "", fmt.Errorf("create etcd client failed: %v", err)
@@ -73,11 +79,20 @@ func (bm *BackupManager) SaveSnap(s3Path string) (int64, string, error) {
 	}
 	defer rc.Close()
 
-	_, err = bm.bw.Write(s3Path, rc)
+	_, err = bm.bw.Write(
+		appendRevToPath(appendRev, rev, s3Path),
+		rc)
 	if err != nil {
 		return 0, "", fmt.Errorf("failed to write snapshot (%v)", err)
 	}
 	return rev, resp.Version, nil
+}
+
+func appendRevToPath(appendRev bool, rev int64, path string) string {
+	if !appendRev {
+		return path
+	}
+	return fmt.Sprintf("%s_%016x", path, rev)
 }
 
 // etcdClientWithMaxRevision gets the etcd endpoint with the maximum kv store revision

@@ -64,7 +64,7 @@ func (b *Backup) processItem(key string) error {
 	if eb.Status.Succeeded || len(eb.Status.Reason) != 0 {
 		return nil
 	}
-	bs, err := b.handleBackup(&eb.Spec)
+	bs, err := b.handle(&eb.Spec)
 	// Report backup status
 	b.reportBackupStatus(bs, err, eb)
 	return err

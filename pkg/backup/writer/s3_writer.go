@@ -63,3 +63,7 @@ func (s3w *s3Writer) Write(path string, r io.Reader) (int64, error) {
 	}
 	return *resp.ContentLength, nil
 }
+
+func (s3w *s3Writer) Purge(path string, maxBackups int) error {
+	return nil
+}

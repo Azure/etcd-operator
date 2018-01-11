@@ -20,4 +20,6 @@ import "io"
 type Writer interface {
 	// Write writes a backup file to the given path and returns size of written file.
 	Write(path string, r io.Reader) (int64, error)
+	// Purge purges stale backup files according to the appended revision number
+	Purge(path string, maxBackups int) error
 }

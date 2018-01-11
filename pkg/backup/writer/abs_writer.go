@@ -15,12 +15,15 @@
 package writer
 
 import (
+	"bytes"
+	"encoding/base64"
 	"fmt"
 	"io"
 	"sort"
 
 	"github.com/Azure/azure-sdk-for-go/storage"
 	"github.com/coreos/etcd-operator/pkg/backup/util"
+	"github.com/pborman/uuid"
 )
 
 var _ Writer = &absWriter{}
@@ -28,6 +31,11 @@ var _ Writer = &absWriter{}
 type absWriter struct {
 	abs *storage.BlobStorageClient
 }
+
+const (
+	// AzureBlobBlockChunkLimitInBytes 100MiB is the limit
+	AzureBlobBlockChunkLimitInBytes = 104857600
+)
 
 // NewABSWriter creates a abs writer.
 func NewABSWriter(abs *storage.BlobStorageClient) Writer {
@@ -60,9 +68,36 @@ func (absw *absWriter) Write(path string, r io.Reader) (int64, error) {
 
 	blob := containerRef.GetBlobReference(key)
 	putBlobOpts := storage.PutBlobOptions{}
-	err = blob.CreateBlockBlobFromReader(r, &putBlobOpts)
+
+	err = blob.CreateBlockBlob(&putBlobOpts)
 	if err != nil {
-		return 0, fmt.Errorf("create block blob from reader failed: %v", err)
+		return 0, err
+	}
+
+	buf := new(bytes.Buffer)
+	buf.ReadFrom(r)
+	len := len(buf.Bytes())
+	chunckCount := len/AzureBlobBlockChunkLimitInBytes + 1
+	blocks := make([]storage.Block, 0, chunckCount)
+	for i := 0; i < chunckCount; i++ {
+		blockID := base64.StdEncoding.EncodeToString([]byte(uuid.New()))
+		blocks = append(blocks, storage.Block{ID: blockID, Status: storage.BlockStatusLatest})
+		start := i * AzureBlobBlockChunkLimitInBytes
+		end := (i + 1) * AzureBlobBlockChunkLimitInBytes
+		if len < end {
+			end = len
+		}
+
+		chunk := buf.Bytes()[start:end]
+		err = blob.PutBlock(blockID, chunk, &storage.PutBlockOptions{})
+		if err != nil {
+			return 0, err
+		}
+	}
+
+	err = blob.PutBlockList(blocks, &storage.PutBlockListOptions{})
+	if err != nil {
+		return 0, err
 	}
 
 	getBlobOpts := &storage.GetBlobOptions{}

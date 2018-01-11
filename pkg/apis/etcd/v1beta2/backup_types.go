@@ -70,6 +70,8 @@ type BackupSpec struct {
 	//    "etcd-client.key": <pem-encoded-key>
 	//    "etcd-client-ca.crt": <pem-encoded-ca-cert>
 	ClientTLSSecret string `json:"clientTLSSecret,omitempty"`
+	// BackupSchedule is the backup schedule related specification.
+	BackupSchedule `json:",inline"`
 }
 
 // BackupSource contains the supported backup sources.
@@ -79,6 +81,14 @@ type BackupSource struct {
 
 	// ABS defines the ABS backup source spec.
 	ABS *ABSBackupSource `json:"abs,omitempty"`
+}
+
+// BackupSchedule contains the supported way in schedule your backup
+type BackupSchedule struct {
+	// BackupIntervalInSecond is the interval used to do periodic backup
+	BackupIntervalInSecond int `json:"backupIntervalInSecond"`
+	// MaxBackups imply how many snapshots you want to back up
+	MaxBackups int `json:"maxBackups"`
 }
 
 // BackupStatus represents the status of the EtcdBackup Custom Resource.

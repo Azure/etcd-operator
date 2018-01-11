@@ -16,8 +16,6 @@ package controller
 
 import (
 	api "github.com/coreos/etcd-operator/pkg/apis/etcd/v1beta2"
-
-	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -109,24 +107,4 @@ func (b *Backup) handleErr(err error, key interface{}) {
 	b.queue.Forget(key)
 	// Report that, even after several retries, we could not successfully process this key
 	b.logger.Infof("Dropping etcd backup (%v) out of the queue: %v", key, err)
-}
-
-func (b *Backup) handleBackup(spec *api.BackupSpec) (*api.BackupStatus, error) {
-	switch spec.StorageType {
-	case api.BackupStorageTypeS3:
-		bs, err := handleS3(b.kubecli, spec.S3, spec.EtcdEndpoints, spec.ClientTLSSecret, b.namespace)
-		if err != nil {
-			return nil, err
-		}
-		return bs, nil
-	case api.BackupStorageTypeABS:
-		bs, err := handleABS(b.kubecli, spec.ABS, spec.EtcdEndpoints, spec.ClientTLSSecret, b.namespace)
-		if err != nil {
-			return nil, err
-		}
-		return bs, nil
-	default:
-		logrus.Fatalf("unknown StorageType: %v", spec.StorageType)
-	}
-	return nil, nil
 }

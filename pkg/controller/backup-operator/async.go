@@ -32,6 +32,10 @@ func (b *Backup) handle(spec *api.BackupSpec) (*api.BackupStatus, error) {
 func (b *Backup) handleBackupSchedule(spec *api.BackupSpec) {
 	interval := spec.BackupSchedule.BackupIntervalInSecond
 	if interval >= 0 {
+		// we can only support BackupInterval greater than a certain value
+		if interval < minBackupIntervalInSecond {
+			interval = minBackupIntervalInSecond
+		}
 		go func() {
 			if spec.BackupSchedule.MaxBackups == 0 {
 				return

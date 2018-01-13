@@ -16,6 +16,7 @@ package absfactory
 
 import (
 	"fmt"
+	"net/url"
 
 	"github.com/Azure/azure-sdk-for-go/storage"
 	api "github.com/coreos/etcd-operator/pkg/apis/etcd/v1beta2"
@@ -30,11 +31,11 @@ const (
 
 // ABSClient is a wrapper of ABS client that provides cleanup functionality.
 type ABSClient struct {
-	ABS *storage.BlobStorageClient
+	ABSContainer *storage.Container
 }
 
 // NewClientFromSecret returns a ABS client based on given k8s secret containing azure credentials.
-func NewClientFromSecret(kubecli kubernetes.Interface, namespace, absSecret string) (w *ABSClient, err error) {
+func NewClientFromSecret(kubecli kubernetes.Interface, namespace, absSecret string, container string) (w *ABSClient, err error) {
 	defer func() {
 		if err != nil {
 			err = fmt.Errorf("new ABS client failed: %v", err)
@@ -47,17 +48,42 @@ func NewClientFromSecret(kubecli kubernetes.Interface, namespace, absSecret stri
 		return nil, fmt.Errorf("failed to get k8s secret: %v", err)
 	}
 
-	storageAccount := se.Data[api.AzureSecretStorageAccount]
-	storageKey := se.Data[api.AzureSecretStorageKey]
+	_, sasauth := se.Data[api.AzureSecretStorageContainerSASUri]
+	if sasauth {
+		sasuri, err := url.Parse(string(se.Data[api.AzureSecretStorageContainerSASUri]))
+		if err != nil {
+			return nil, err
+		}
+		containerRef, err := storage.GetContainerReferenceFromSASURI(*sasuri)
+		if err != nil {
+			return nil, err
+		}
+		w.ABSContainer = containerRef
+		// Doesn't need to check existence if SAS is already generated
 
-	bc, err := storage.NewBasicClient(
-		string(storageAccount),
-		string(storageKey))
-	if err != nil {
-		return nil, fmt.Errorf("failed to create Azure storage client: %v", err)
+	} else {
+		storageAccount := se.Data[api.AzureSecretStorageAccount]
+		storageKey := se.Data[api.AzureSecretStorageKey]
+
+		bc, err := storage.NewBasicClient(
+			string(storageAccount),
+			string(storageKey))
+		if err != nil {
+			return nil, fmt.Errorf("failed to create Azure storage client: %v", err)
+		}
+		abs := bc.GetBlobService()
+		w.ABSContainer = abs.GetContainerReference(container)
+
+		// check the container exist
+		containerExists, err := w.ABSContainer.Exists()
+		if err != nil {
+			return nil, err
+		}
+
+		if !containerExists {
+			return nil, fmt.Errorf("container %v does not exist", container)
+		}
 	}
 
-	abs := bc.GetBlobService()
-	w.ABS = &abs
 	return w, nil
 }

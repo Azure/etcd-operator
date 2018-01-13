@@ -20,6 +20,7 @@ import (
 
 	api "github.com/coreos/etcd-operator/pkg/apis/etcd/v1beta2"
 	"github.com/coreos/etcd-operator/pkg/backup"
+	"github.com/coreos/etcd-operator/pkg/backup/util"
 	"github.com/coreos/etcd-operator/pkg/backup/writer"
 	"github.com/coreos/etcd-operator/pkg/util/azureutil/absfactory"
 	"github.com/coreos/etcd-operator/pkg/util/etcdutil"
@@ -31,7 +32,11 @@ import (
 // TODO: replace this with generic backend interface for other options (PV, Azure)
 // handleABS saves etcd cluster's backup to specificed ABS path.
 func handleABS(kubecli kubernetes.Interface, s *api.ABSBackupSource, sch api.BackupSchedule, endpoints []string, clientTLSSecret, namespace string) (*api.BackupStatus, error) {
-	cli, err := absfactory.NewClientFromSecret(kubecli, namespace, s.ABSSecret)
+	container, _, err := util.ParseBucketAndKey(s.Path)
+	if err != nil {
+		return nil, err
+	}
+	cli, err := absfactory.NewClientFromSecret(kubecli, namespace, s.ABSSecret, container)
 	if err != nil {
 		return nil, err
 	}
@@ -48,7 +53,7 @@ func handleABS(kubecli kubernetes.Interface, s *api.ABSBackupSource, sch api.Bac
 		}
 	}
 
-	bm := backup.NewBackupManagerFromWriter(kubecli, writer.NewABSWriter(cli.ABS), tlsConfig, endpoints, namespace)
+	bm := backup.NewBackupManagerFromWriter(kubecli, writer.NewABSWriter(cli.ABSContainer), tlsConfig, endpoints, namespace)
 	appendRev := false
 	if sch.BackupIntervalInSecond > 0 {
 		appendRev = true

@@ -23,6 +23,7 @@ import (
 	api "github.com/coreos/etcd-operator/pkg/apis/etcd/v1beta2"
 	"github.com/coreos/etcd-operator/pkg/backup/backupapi"
 	"github.com/coreos/etcd-operator/pkg/backup/reader"
+	"github.com/coreos/etcd-operator/pkg/backup/util"
 	"github.com/coreos/etcd-operator/pkg/util/awsutil/s3factory"
 	"github.com/coreos/etcd-operator/pkg/util/azureutil/absfactory"
 
@@ -104,18 +105,27 @@ func (r *Restore) serveBackup(w http.ResponseWriter, req *http.Request) error {
 		if restoreSource.ABS == nil {
 			return errors.New("empty abs restore source")
 		}
+
 		absRestoreSource := restoreSource.ABS
 		if len(absRestoreSource.ABSSecret) == 0 || len(absRestoreSource.Path) == 0 {
 			return errors.New("invalid abs restore source field (spec.abs), must specify all required subfields")
 		}
 
-		absCli, err := absfactory.NewClientFromSecret(r.kubecli, r.namespace, absRestoreSource.ABSSecret)
+		container, _, err := util.ParseBucketAndKey(absRestoreSource.Path)
+		if err != nil {
+			return err
+		}
+
+		absCli, err := absfactory.NewClientFromSecret(
+			r.kubecli,
+			r.namespace,
+			absRestoreSource.ABSSecret,
+			container)
 		if err != nil {
 			return fmt.Errorf("failed to create ABS client: %v", err)
 		}
-		// Nothing to Close for absCli yet
 
-		backupReader = reader.NewABSReader(absCli.ABS)
+		backupReader = reader.NewABSReader(absCli.ABSContainer)
 		path = absRestoreSource.Path
 	default:
 		return fmt.Errorf("unknown backup storage type (%s) for restore CR (%v)", cr.Spec.BackupStorageType, restoreName)

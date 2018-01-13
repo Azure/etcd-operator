@@ -23,9 +23,10 @@ const (
 	AWSSecretConfigFileName                        = "config"
 
 	// Azure ABS related consts
-	BackupStorageTypeABS      BackupStorageType = "ABS"
-	AzureSecretStorageAccount                   = "storage-account"
-	AzureSecretStorageKey                       = "storage-key"
+	BackupStorageTypeABS              BackupStorageType = "ABS"
+	AzureSecretStorageAccount                           = "storage-account"
+	AzureSecretStorageKey                               = "storage-key"
+	AzureSecretStorageContainerSASUri                   = "sas-uri"
 )
 
 type BackupStorageType string

@@ -29,7 +29,7 @@ import (
 var _ Writer = &absWriter{}
 
 type absWriter struct {
-	abs *storage.BlobStorageClient
+	abs *storage.Container
 }
 
 const (
@@ -38,34 +38,17 @@ const (
 )
 
 // NewABSWriter creates a abs writer.
-func NewABSWriter(abs *storage.BlobStorageClient) Writer {
+func NewABSWriter(abs *storage.Container) Writer {
 	return &absWriter{abs}
-}
-
-func (absw *absWriter) getContainer(container string) (*storage.Container, error) {
-	containerRef := absw.abs.GetContainerReference(container)
-	containerExists, err := containerRef.Exists()
-	if err != nil {
-		return nil, err
-	}
-
-	if !containerExists {
-		return nil, fmt.Errorf("container %v does not exist", container)
-	}
-	return containerRef, nil
 }
 
 // Write writes the backup file to the given abs path, "<abs-container-name>/<key>".
 func (absw *absWriter) Write(path string, r io.Reader) (int64, error) {
-	container, key, err := util.ParseBucketAndKey(path)
+	_, key, err := util.ParseBucketAndKey(path)
 	if err != nil {
 		return 0, err
 	}
-	containerRef, err := absw.getContainer(container)
-	if err != nil {
-		return 0, err
-	}
-
+	containerRef := absw.abs
 	blob := containerRef.GetBlobReference(key)
 	putBlobOpts := storage.PutBlobOptions{}
 
@@ -110,16 +93,12 @@ func (absw *absWriter) Write(path string, r io.Reader) (int64, error) {
 }
 
 func (absw *absWriter) Purge(path string, maxBackups int) error {
-	container, key, err := util.ParseBucketAndKey(path)
+	_, key, err := util.ParseBucketAndKey(path)
 	if err != nil {
 		return err
 	}
 
-	containerRef, err := absw.getContainer(container)
-	if err != nil {
-		return err
-	}
-
+	containerRef := absw.abs
 	params := storage.ListBlobsParameters{Prefix: fmt.Sprintf("%s_", key)}
 	resp, err := containerRef.ListBlobs(params)
 	if err != nil {

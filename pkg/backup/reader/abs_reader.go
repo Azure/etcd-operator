@@ -28,30 +28,21 @@ var _ Reader = &absReader{}
 
 // absReader provides Reader implementation for reading a file from ABS
 type absReader struct {
-	abs *storage.BlobStorageClient
+	abs *storage.Container
 }
 
-func NewABSReader(abs *storage.BlobStorageClient) Reader {
+func NewABSReader(abs *storage.Container) Reader {
 	return &absReader{abs}
 }
 
 // Open opens the file on path where path must be in the format "<abs-container-name>/<key>"
 func (absr *absReader) Open(path string) (io.ReadCloser, error) {
-	container, key, err := util.ParseBucketAndKey(path)
+	_, key, err := util.ParseBucketAndKey(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse abs container and key: %v", err)
 	}
 
-	containerRef := absr.abs.GetContainerReference(container)
-	containerExists, err := containerRef.Exists()
-	if err != nil {
-		return nil, err
-	}
-
-	if !containerExists {
-		return nil, fmt.Errorf("container %v does not exist", container)
-	}
-
+	containerRef := absr.abs
 	blob := containerRef.GetBlobReference(key)
 	getBlobOpts := &storage.GetBlobOptions{}
 	return blob.Get(getBlobOpts)

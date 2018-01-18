@@ -1,5 +1,5 @@
-hash: a7c2eabac68ed67b085e7307e6877aded7f2a10124f291dcd2db4f71b6648ff3
-updated: 2017-09-09T09:46:19.917983559-07:00
+hash: 357a550389e235c4622f5117a8c19150aa0c1176c1a3ea94ceb6e355bc9dbf81
+updated: 2018-01-18T11:57:46.191728-08:00
 imports:
 - name: cloud.google.com/go
   version: 3b1ae45394a234c385be014e9a488f2bb6eef821
@@ -92,7 +92,7 @@ imports:
 - name: github.com/ghodss/yaml
   version: 73d445a93680fa1a78ae23a5839bad48f32ba1ee
 - name: github.com/go-ini/ini
-  version: c787282c39ac1fc618827141a1f762240def08a3
+  version: 32e4c1e6bc4e7d0d8451aa6b75200d19e37a536a
 - name: github.com/go-openapi/jsonpointer
   version: 46af16f9f7b149af66e5d1bd010e3574dc06de98
 - name: github.com/go-openapi/jsonreference
@@ -146,7 +146,7 @@ imports:
 - name: github.com/imdario/mergo
   version: 6633656539c1639d9d78127b7d47c622b5d7b6dc
 - name: github.com/jmespath/go-jmespath
-  version: bd40a432e4c76585ef6b72d3fd96fb9b6dc7b68d
+  version: dd801d4f4ce7ac746e7e7b4489d2fa600b3b096b
 - name: github.com/jpillora/go-ogle-analytics
   version: 14b04e0594ef6a9fd943363b135656f0ec8c9d0e
 - name: github.com/juju/ratelimit
@@ -170,7 +170,7 @@ imports:
   subpackages:
   - prometheus
 - name: github.com/prometheus/client_model
-  version: 6f3806018612930941127f2a7c6c453ba2c527d2
+  version: 99fa1f4be8e564e8a6b613da7fa6f46c9edafc6c
   subpackages:
   - go
 - name: github.com/prometheus/common
@@ -189,7 +189,7 @@ imports:
   version: 5bd2802263f21d8788851d5305584c82a5c75d7e
 - name: github.com/satori/uuid
   version: 5bf94b69c6b68ee1b541973bb8e1144db23a194b
-- name: github.com/Sirupsen/logrus
+- name: github.com/sirupsen/logrus
   version: 202f25545ea4cf9b191ff7f846df5d87c9382c2b
 - name: github.com/spf13/pflag
   version: 9ff6c6923cfffbcd502984b8e0c80539a94968b7
@@ -220,7 +220,7 @@ imports:
   - jws
   - jwt
 - name: golang.org/x/sys
-  version: a5054c7c1385fd50d9394475365355a87a7873ec
+  version: 8f0908ab3b2457e2e15403d3697c9ef5cb4b57a9
   subpackages:
   - unix
 - name: golang.org/x/text
@@ -237,11 +237,11 @@ imports:
   - unicode/norm
   - width
 - name: golang.org/x/time
-  version: 8be79e1e0910c292df4e79c241bb7e8f7e725959
+  version: 6dc17368e09b0e8634d71cac8168d853e869a0c7
   subpackages:
   - rate
 - name: google.golang.org/appengine
-  version: d9a072cfa7b9736e44311ef77b3e09d804bfa599
+  version: 12d5545dc1cfa6047a286d5e853841b6471f4c19
   subpackages:
   - internal
   - internal/app_identity

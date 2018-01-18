@@ -90,6 +90,10 @@ func (b backupClient) Exist(ctx context.Context, v string) (bool, error) {
 		return true, nil
 	}
 
+	if resp.StatusCode == http.StatusNotFound {
+		return false, nil
+	}
+
 	var errmsg string
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {

@@ -155,6 +155,13 @@ func (b *Backup) Run() {
 		}
 	}()
 
+	logrus.Info("save snapshot at very beginning")
+	rev, err := b.saveSnap(lastSnapRev)
+	if err != nil {
+		logrus.Errorf("failed to save snapshot: %v", err)
+	}
+	lastSnapRev = rev
+
 	for {
 		var ackchan chan backupNowAck
 		select {

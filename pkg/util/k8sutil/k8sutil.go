@@ -75,6 +75,11 @@ func GetPodNames(pods []*v1.Pod) []string {
 	return res
 }
 
+// PVCNameFromMember the way we get PVC name from the member name
+func PVCNameFromMember(memberName string) string {
+	return memberName
+}
+
 func makeRestoreInitContainerSpec(backupAddr, token, baseImage, version string, m *etcdutil.Member) string {
 	spec := []v1.Container{
 		{
@@ -211,6 +216,19 @@ func newEtcdServiceManifest(svcName, clusterName, clusterIP string, ports []v1.S
 	return svc
 }
 
+// AddEtcdVolumeToPod abstract the process of appending volume spec to pod spec
+func AddEtcdVolumeToPod(pod *v1.Pod, pvc *v1.PersistentVolumeClaim) {
+	vol := v1.Volume{Name: etcdVolumeName}
+	if pvc != nil {
+		vol.VolumeSource = v1.VolumeSource{
+			PersistentVolumeClaim: &v1.PersistentVolumeClaimVolumeSource{ClaimName: pvc.Name},
+		}
+	} else {
+		vol.VolumeSource = v1.VolumeSource{EmptyDir: &v1.EmptyDirVolumeSource{}}
+	}
+	pod.Spec.Volumes = append(pod.Spec.Volumes, vol)
+}
+
 func AddRecoveryToPod(pod *v1.Pod, clusterName, token string, m *etcdutil.Member, cs spec.ClusterSpec) {
 	pod.Annotations[v1.PodInitContainersBetaAnnotationKey] =
 		makeRestoreInitContainerSpec(BackupServiceAddr(clusterName), token, cs.BaseImage, cs.Version, m)
@@ -218,6 +236,20 @@ func AddRecoveryToPod(pod *v1.Pod, clusterName, token string, m *etcdutil.Member
 
 func addOwnerRefToObject(o metav1.Object, r metav1.OwnerReference) {
 	o.SetOwnerReferences(append(o.GetOwnerReferences(), r))
+}
+
+// NewEtcdPodPVC create PVC object from etcd pod's PVC spec
+func NewEtcdPodPVC(m *etcdutil.Member, pvcSpec v1.PersistentVolumeClaimSpec, clusterName, namespace string, owner metav1.OwnerReference) *v1.PersistentVolumeClaim {
+	pvc := &v1.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      PVCNameFromMember(m.Name),
+			Namespace: namespace,
+			Labels:    LabelsForCluster(clusterName),
+		},
+		Spec: pvcSpec,
+	}
+	addOwnerRefToObject(pvc.GetObjectMeta(), owner)
+	return pvc
 }
 
 func NewEtcdPod(m *etcdutil.Member, initialCluster []string, clusterName, state, token string, cs spec.ClusterSpec, owner metav1.OwnerReference) *v1.Pod {

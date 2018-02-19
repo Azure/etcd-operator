@@ -375,8 +375,14 @@ func (c *Cluster) run() {
 
 		if isFatalError(rerr) {
 			c.status.SetReason(rerr.Error())
-			c.logger.Errorf("cluster failed: %v", rerr)
-			return
+			// Old behavior
+			// It is Fatal Error case, and etcdcluster would be set to Failed
+			// It would be a non-recoverable case
+
+			// New behavior
+			// To avoid that, we don't return, so it will not be set to Failed
+			// but we do log
+			c.logger.Errorf("cluster failed (however, we continue reconcile loop): %v", rerr)
 		}
 	}
 }

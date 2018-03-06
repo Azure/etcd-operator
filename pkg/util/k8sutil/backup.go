@@ -247,6 +247,7 @@ func NewBackupPodTemplate(clusterName, account string, sp spec.ClusterSpec) v1.P
 }
 
 func NewBackupDeploymentManifest(name string, dplSel map[string]string, pl v1.PodTemplateSpec, owner metav1.OwnerReference) *appsv1beta1.Deployment {
+	oneIntStr := intstr.FromInt(1)
 	d := &appsv1beta1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   name,
@@ -256,7 +257,11 @@ func NewBackupDeploymentManifest(name string, dplSel map[string]string, pl v1.Po
 			Selector: &metav1.LabelSelector{MatchLabels: pl.ObjectMeta.Labels},
 			Template: pl,
 			Strategy: appsv1beta1.DeploymentStrategy{
-				Type: appsv1beta1.RecreateDeploymentStrategyType,
+				Type: appsv1beta1.RollingUpdateDeploymentStrategyType,
+				RollingUpdate: &appsv1beta1.RollingUpdateDeployment{
+					MaxSurge:       &oneIntStr,
+					MaxUnavailable: &oneIntStr,
+				},
 			},
 		},
 	}

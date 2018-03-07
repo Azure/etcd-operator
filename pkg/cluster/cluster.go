@@ -290,13 +290,15 @@ func (c *Cluster) run() {
 				ob, nb := c.cluster.Spec.Backup, event.cluster.Spec.Backup
 				c.cluster = event.cluster
 
-				if !isBackupPolicyEqual(ob, nb) {
-					err = c.updateBackupPolicy(ob, nb)
-					if err != nil {
-						c.logger.Errorf("failed to update backup policy: %v", err)
-						c.status.SetReason(err.Error())
-						return
-					}
+				// Everytime, when cluster spec change, we have to updateBackupPolicy
+				// Not all cluster specs are within BackupPolicy, such as TLS configs
+				// When etcdcluster has TLS configs change, we have to update backup
+				// sidecar
+				err = c.updateBackupPolicy(ob, nb)
+				if err != nil {
+					c.logger.Errorf("failed to update backup policy: %v", err)
+					c.status.SetReason(err.Error())
+					return
 				}
 
 			case eventDeleteCluster:

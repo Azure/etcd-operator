@@ -239,19 +239,11 @@ func (bm *backupManager) upgradeIfNeeded() error {
 	if err != nil {
 		return err
 	}
-	if d.Spec.Template.Spec.Containers[0].Image == k8sutil.BackupImage {
-		return nil
-	}
-
 	bm.logger.Infof("upgrading backup sidecar from (%v) to (%v)",
 		d.Spec.Template.Spec.Containers[0].Image, k8sutil.BackupImage)
 
 	uf := func(d *appsv1beta1.Deployment) {
-		d.Spec.Template.Spec.Containers[0].Image = k8sutil.BackupImage
-		// TODO: backward compatibility for v0.2.6 . Remove this after v0.2.7 .
-		d.Spec.Strategy = appsv1beta1.DeploymentStrategy{
-			Type: appsv1beta1.RecreateDeploymentStrategyType,
-		}
+		d.Spec = bm.makeSidecarDeployment().Spec
 	}
 	return k8sutil.PatchDeployment(bm.config.KubeCli, ns, n, uf)
 }

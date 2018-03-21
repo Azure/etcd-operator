@@ -208,13 +208,7 @@ func (c *Cluster) create() error {
 		}
 	}
 
-	if c.cluster.Spec.Restore == nil {
-		// Note: For restore case, we don't need to create seed member,
-		// and will go through reconcile loop and disaster recovery.
-		if err := c.prepareSeedMember(); err != nil {
-			return err
-		}
-	}
+	// We never need to create seed member, we always go through reconcile loop
 
 	if err := c.setupServices(); err != nil {
 		return fmt.Errorf("cluster create: fail to create client service LB: %v", err)

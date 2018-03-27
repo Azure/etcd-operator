@@ -256,6 +256,7 @@ func (c *Cluster) disasterRecovery(left etcdutil.MemberSet) error {
 			return err
 		}
 	}
+
 	return c.startSeedMember(exist)
 }
 

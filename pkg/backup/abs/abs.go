@@ -53,7 +53,7 @@ func New(container, accountName, accountKey, accountSASToken, prefix string) (*A
 	} else {
 		basicClient, err = storage.NewBasicClient(accountName, accountKey)
 		if err != nil {
-			return nil, fmt.Errorf("create ABS client (front storage account name and key) failed: %v", err)
+			return nil, fmt.Errorf("create ABS client (from storage account name and key) failed: %v", err)
 		}
 	}
 	return NewFromClient(container, prefix, &basicClient)
@@ -66,7 +66,6 @@ func NewFromClient(container, prefix string, storageClient *storage.Client) (*AB
 
 	// Check if supplied container exists using ListBlob
 	// if the blobs not there, we would expect to see 404
-	// The reason we want to use this methods is to compatible with SAS auth
 	_, err := containerRef.ListBlobs(storage.ListBlobsParameters{})
 	if err != nil {
 		return nil, fmt.Errorf("containerRef.ListBlobs failed. error: %v", err)
@@ -91,9 +90,9 @@ func (w *ABS) Put(key string, r io.Reader) error {
 	buf := new(bytes.Buffer)
 	buf.ReadFrom(r)
 	len := len(buf.Bytes())
-	chunckCount := len/AzureBlobBlockChunkLimitInBytes + 1
-	blocks := make([]storage.Block, 0, chunckCount)
-	for i := 0; i < chunckCount; i++ {
+	chunkCount := len/AzureBlobBlockChunkLimitInBytes + 1
+	blocks := make([]storage.Block, 0, chunkCount)
+	for i := 0; i < chunkCount; i++ {
 		blockID := base64.StdEncoding.EncodeToString([]byte(uuid.New()))
 		blocks = append(blocks, storage.Block{ID: blockID, Status: storage.BlockStatusLatest})
 		start := i * AzureBlobBlockChunkLimitInBytes

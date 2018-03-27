@@ -62,17 +62,15 @@ func New(container, accountName, accountKey, accountSASToken, prefix string) (*A
 // NewFromClient returns a new ABS object for a given container using the supplied storageClient
 func NewFromClient(container, prefix string, storageClient *storage.Client) (*ABS, error) {
 	client := storageClient.GetBlobService()
-
-	// Check if supplied container exists
 	containerRef := client.GetContainerReference(container)
-	containerExists, err := containerRef.Exists()
-	if err != nil {
-		return nil, fmt.Errorf("containerRef.Exists failed. error: %v", err)
-	}
-	if !containerExists {
-		return nil, fmt.Errorf("container %v does not exist", container)
-	}
 
+	// Check if supplied container exists using ListBlob
+	// if the blobs not there, we would expect to see 404
+	// The reason we want to use this methods is to compatible with SAS auth
+	_, err := containerRef.ListBlobs(storage.ListBlobsParameters{})
+	if err != nil {
+		return nil, fmt.Errorf("containerRef.ListBlobs failed. error: %v", err)
+	}
 	return &ABS{
 		container: containerRef,
 		prefix:    prefix,

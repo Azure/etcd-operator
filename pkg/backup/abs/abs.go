@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"io"
 	"path"
+	"strings"
 
 	"github.com/Azure/azure-sdk-for-go/storage"
 	"github.com/pborman/uuid"
@@ -44,6 +45,12 @@ func New(container, accountName, accountKey, accountSASToken, prefix string) (*A
 	var basicClient storage.Client
 	var err error
 	if len(accountSASToken) != 0 {
+		// This piece code is to make accountSASToken compatible if customer pasted a URI instead
+		ind := strings.IndexAny(accountSASToken, "?")
+		if ind != -1 {
+			accountSASToken = accountSASToken[ind+1:]
+		}
+
 		// Reference: https://github.com/Azure/azure-sdk-for-go/blob/eae258195456be76b2ec9ad2ee2ab63cdda365d9/storage/client_test.go#L313
 		endpoint := fmt.Sprintf("http://%s.blob.core.windows.net/%s", accountName, container)
 		basicClient, err = storage.NewAccountSASClientFromEndpointToken(endpoint, accountSASToken)

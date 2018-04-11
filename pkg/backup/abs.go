@@ -67,6 +67,7 @@ func (ab *absBackend) purge(maxBackupFiles int) error {
 		return err
 	}
 	bnames := filterAndSortBackups(names)
+	logrus.Info("found %d backups from backend azure blob storage")
 	if len(bnames) < maxBackupFiles {
 		return nil
 	}
@@ -74,6 +75,8 @@ func (ab *absBackend) purge(maxBackupFiles int) error {
 		err := ab.ABS.Delete(bnames[i])
 		if err != nil {
 			logrus.Errorf("fail to delete abs blob (%s): %v", bnames[i], err)
+		} else {
+			logrus.Infof("Successfully deleted abs blob (%s)", bnames[i])
 		}
 	}
 	return nil

@@ -150,9 +150,12 @@ func (b *Backup) Run() {
 	}
 
 	go func() {
-
 		mbp := b.policy.MaxBackups
 		if mbp == 0 {
+			// We don't want this number to growing infinitely at all
+			// all the backup solutions, including S3 and Azure has the list limit
+			// For Azure blob storage it is 5000
+			// If we let it growing infinitely, we lost the ability to determine which backup is the latest
 			mbp = maxBackups
 		}
 

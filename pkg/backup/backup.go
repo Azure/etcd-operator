@@ -42,6 +42,8 @@ const (
 	PVBackupV1 = "v1"
 
 	maxRecentBackupStatusCount = 10
+
+	maxBackups = 4000
 )
 
 type Backup struct {
@@ -148,12 +150,15 @@ func (b *Backup) Run() {
 	}
 
 	go func() {
-		if b.policy.MaxBackups == 0 {
-			return
+
+		mbp := b.policy.MaxBackups
+		if mbp == 0 {
+			mbp = maxBackups
 		}
+
 		for {
 			<-time.After(10 * time.Second)
-			err := b.be.purge(b.policy.MaxBackups)
+			err := b.be.purge(mbp)
 			if err != nil {
 				logrus.Errorf("fail to purge backups: %v", err)
 			}

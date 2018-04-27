@@ -153,11 +153,12 @@ func (c *Cluster) setup() error {
 	case spec.ClusterPhaseRunning:
 		shouldCreateCluster = false
 	case spec.ClusterPhaseFailed:
-		c.logger.Errorf("for Failed phase, we update the status to Running, and panic")
+		c.logger.Errorf("for Failed phase, we update the status to Running")
 		c.status.Phase = spec.ClusterPhaseRunning
-		c.updateCRStatus()
-		<-time.After(5 * time.Second)
-		panic("for Failed phase, we update the status to Running, and panic")
+		if err := c.updateCRStatus(); err != nil {
+			panic("error to update CR status phase from Failed to Running")
+		}
+		shouldCreateCluster = false
 	default:
 		return fmt.Errorf("unexpected cluster phase: %s", c.status.Phase)
 	}

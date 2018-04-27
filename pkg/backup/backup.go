@@ -160,7 +160,8 @@ func (b *Backup) Run() {
 		}
 
 		for {
-			<-time.After(10 * time.Second)
+			// Check every 24 hours
+			<-time.After(24 * time.Hour)
 			err := b.be.purge(mbp)
 			if err != nil {
 				logrus.Errorf("fail to purge backups: %v", err)

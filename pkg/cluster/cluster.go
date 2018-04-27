@@ -19,7 +19,6 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"math"
 	"reflect"
 	"strings"
 	"time"
@@ -31,12 +30,10 @@ import (
 	"github.com/coreos/etcd-operator/pkg/spec"
 	"github.com/coreos/etcd-operator/pkg/util/etcdutil"
 	"github.com/coreos/etcd-operator/pkg/util/k8sutil"
-	"github.com/coreos/etcd-operator/pkg/util/retryutil"
 
 	"github.com/pborman/uuid"
 	"github.com/sirupsen/logrus"
 	"k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
@@ -121,14 +118,7 @@ func New(config Config, cl *spec.EtcdCluster) *Cluster {
 	go func() {
 		if err := c.setup(); err != nil {
 			c.logger.Errorf("cluster failed to setup: %v", err)
-			if c.status.Phase != spec.ClusterPhaseFailed {
-				c.status.SetReason(err.Error())
-				c.status.SetPhase(spec.ClusterPhaseFailed)
-				if err := c.updateCRStatus(); err != nil {
-					c.logger.Errorf("failed to update cluster phase (%v): %v", spec.ClusterPhaseFailed, err)
-				}
-			}
-			return
+			panic(fmt.Sprintf("cluster failed to setup: %v", err))
 		}
 		c.run()
 	}()
@@ -162,7 +152,11 @@ func (c *Cluster) setup() error {
 		return errCreatedCluster
 	case spec.ClusterPhaseRunning:
 		shouldCreateCluster = false
-
+	case spec.ClusterPhaseFailed:
+		c.logger.Errorf("for Failed phase, we update the status to Running, and panic")
+		c.status.Phase = spec.ClusterPhaseRunning
+		c.updateCRStatus()
+		panic("for Failed phase, we update the status to Running, and panic")
 	default:
 		return fmt.Errorf("unexpected cluster phase: %s", c.status.Phase)
 	}
@@ -258,13 +252,6 @@ func (c *Cluster) send(ev *clusterEvent) {
 }
 
 func (c *Cluster) run() {
-
-	defer func() {
-		c.logger.Infof("deleting the failed cluster")
-		c.reportFailedStatus()
-		c.delete()
-	}()
-
 	c.status.SetPhase(spec.ClusterPhaseRunning)
 	if err := c.updateCRStatus(); err != nil {
 		c.logger.Warningf("update initial CR status failed: %v", err)
@@ -617,40 +604,6 @@ func (c *Cluster) updateLocalBackupStatus() error {
 	c.status.BackupServiceStatus = backupServiceStatusToTPRBackupServiceStatu(bs)
 
 	return nil
-}
-
-func (c *Cluster) reportFailedStatus() {
-	retryInterval := 5 * time.Second
-
-	f := func() (bool, error) {
-		c.status.SetPhase(spec.ClusterPhaseFailed)
-		err := c.updateCRStatus()
-		if err == nil || k8sutil.IsKubernetesResourceNotFoundError(err) {
-			return true, nil
-		}
-
-		if !apierrors.IsConflict(err) {
-			c.logger.Warningf("retry report status in %v: fail to update: %v", retryInterval, err)
-			return false, nil
-		}
-
-		cl, err := c.config.EtcdCRCli.Get(context.TODO(), c.cluster.Namespace, c.cluster.Name)
-		if err != nil {
-			// Update (PUT) will return conflict even if object is deleted since we have UID set in object.
-			// Because it will check UID first and return something like:
-			// "Precondition failed: UID in precondition: 0xc42712c0f0, UID in object meta: ".
-			if k8sutil.IsKubernetesResourceNotFoundError(err) {
-				return true, nil
-			}
-			c.logger.Warningf("retry report status in %v: fail to get latest version: %v", retryInterval, err)
-			return false, nil
-		}
-		c.cluster = cl
-		return false, nil
-
-	}
-
-	retryutil.Retry(retryInterval, math.MaxInt64, f)
 }
 
 func (c *Cluster) name() string {

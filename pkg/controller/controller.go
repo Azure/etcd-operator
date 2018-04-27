@@ -97,16 +97,6 @@ func New(cfg Config) *Controller {
 
 func (c *Controller) handleClusterEvent(event *Event) error {
 	clus := event.Object
-
-	if clus.Status.IsFailed() {
-		clustersFailed.Inc()
-		if event.Type == kwatch.Deleted {
-			delete(c.clusters, clus.Name)
-			return nil
-		}
-		return fmt.Errorf("ignore failed cluster (%s). Please delete its CR", clus.Name)
-	}
-
 	// TODO: add validation to spec update.
 	clus.Spec.Cleanup()
 

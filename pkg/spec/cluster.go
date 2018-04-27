@@ -311,13 +311,6 @@ func (cs ClusterStatus) Copy() ClusterStatus {
 	return newCS
 }
 
-func (cs *ClusterStatus) IsFailed() bool {
-	if cs == nil {
-		return false
-	}
-	return cs.Phase == ClusterPhaseFailed
-}
-
 func (cs *ClusterStatus) SetPhase(p ClusterPhase) {
 	cs.Phase = p
 }

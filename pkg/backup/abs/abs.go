@@ -90,13 +90,19 @@ func (w *ABS) Put(key string, r io.Reader) error {
 	blobName := path.Join(v1, w.prefix, key)
 	blob := w.container.GetBlobReference(blobName)
 
+	var buf bytes.Buffer
+	if r != nil {
+		_, err := io.Copy(&buf, r)
+		if err != nil {
+			return err
+		}
+		r = &buf
+	}
+
 	err := blob.CreateBlockBlob(&storage.PutBlobOptions{})
 	if err != nil {
 		return err
 	}
-
-	buf := new(bytes.Buffer)
-	buf.ReadFrom(r)
 
 	len := len(buf.Bytes())
 	d := float64(len) / float64(AzureBlobBlockChunkLimitInBytes)

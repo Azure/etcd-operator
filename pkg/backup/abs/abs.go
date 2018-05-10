@@ -19,6 +19,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
+	"math"
 	"path"
 	"strings"
 
@@ -96,8 +97,10 @@ func (w *ABS) Put(key string, r io.Reader) error {
 
 	buf := new(bytes.Buffer)
 	buf.ReadFrom(r)
+
 	len := len(buf.Bytes())
-	chunkCount := len/AzureBlobBlockChunkLimitInBytes + 1
+	d := float64(len) / float64(AzureBlobBlockChunkLimitInBytes)
+	chunkCount := int(math.Ceil(d))
 	blocks := make([]storage.Block, 0, chunkCount)
 	for i := 0; i < chunkCount; i++ {
 		blockID := base64.StdEncoding.EncodeToString([]byte(uuid.New()))

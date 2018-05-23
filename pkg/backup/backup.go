@@ -205,6 +205,43 @@ func (b *Backup) Run() {
 	}
 }
 
+func (b *Backup) defrag(m *etcdutil.Member) error {
+	cfg := clientv3.Config{
+		Endpoints:   []string{m.ClientURL()},
+		DialTimeout: constants.DefaultDialTimeout,
+		TLS:         b.etcdTLSConfig,
+	}
+	etcdcli, err := clientv3.New(cfg)
+	if err != nil {
+		return fmt.Errorf("failed to create etcd client (%v)", err)
+	}
+	defer etcdcli.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), constants.DefaultRequestTimeout)
+	mems, err := etcdcli.MemberList(ctx)
+	cancel()
+	if err != nil {
+		return fmt.Errorf("defrag: failed to get cluster endpoints (%v)", err)
+	}
+
+	eps := []string{}
+	for _, me := range mems.Members {
+		eps = append(eps, me.ClientURLs...)
+	}
+
+	for _, ep := range eps {
+		ctx, cancel := context.WithTimeout(context.Background(), constants.DefaultDefragTimeout)
+		_, err := etcdcli.Defragment(ctx, ep)
+		cancel()
+		if err != nil {
+			// If this fails we want to continue but just log the error
+			fmt.Errorf("defrag: failed to defrag member %s (%v)", ep, err)
+		}
+	}
+
+	return nil
+}
+
 func (b *Backup) saveSnap(lastSnapRev int64) (int64, error) {
 	podList, err := b.kclient.Core().Pods(b.namespace).List(k8sutil.ClusterListOpt(b.clusterName))
 	if err != nil {
@@ -233,6 +270,11 @@ func (b *Backup) saveSnap(lastSnapRev int64) (int64, error) {
 	if rev <= lastSnapRev {
 		logrus.Info("skipped creating new backup: no change since last time")
 		return lastSnapRev, nil
+	}
+
+	logrus.Info("running defrag for cluster (%s)", b.clusterName)
+	if err := b.defrag(member); err != nil {
+		logrus.Error("defrag failed: %v", err)
 	}
 
 	log.Printf("saving backup for cluster (%s)", b.clusterName)

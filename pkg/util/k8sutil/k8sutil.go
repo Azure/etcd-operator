@@ -86,8 +86,8 @@ func HostPathFromMember(hp, memberName, namespace string) string {
 	return path.Join(hp, namespace, memberName)
 }
 
-func makeRestoreInitContainerSpec(backupAddr, token, baseImage, version string, m *etcdutil.Member) string {
-	spec := []v1.Container{
+func makeRestoreInitContainerSpec(backupAddr, token, baseImage, version string, m *etcdutil.Member) []v1.Container {
+	return []v1.Container{
 		{
 			Name:  "fetch-backup",
 			Image: "tutum/curl",
@@ -112,11 +112,6 @@ func makeRestoreInitContainerSpec(backupAddr, token, baseImage, version string, 
 			VolumeMounts: etcdVolumeMounts(),
 		},
 	}
-	b, err := json.Marshal(spec)
-	if err != nil {
-		panic(err)
-	}
-	return string(b)
 }
 
 func ImageName(baseImage, version string) string {
@@ -240,7 +235,7 @@ func AddEtcdVolumeToPod(pod *v1.Pod, pvc *v1.PersistentVolumeClaim, hostPath *v1
 }
 
 func AddRecoveryToPod(pod *v1.Pod, clusterName, token string, m *etcdutil.Member, cs spec.ClusterSpec) {
-	pod.Annotations[v1.PodInitContainersBetaAnnotationKey] =
+	pod.Spec.InitContainers =
 		makeRestoreInitContainerSpec(BackupServiceAddr(clusterName), token, cs.BaseImage, cs.Version, m)
 }
 
